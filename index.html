@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastering Prompt Roles & Shots</title>
+    
+    <!-- Tailwind CSS for rapid, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter for clean, modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* * CUSTOM STYLES
+         * Instructors can easily customize colors and fonts here.
+         */
+        :root {
+            /* Color scheme for different prompt roles */
+            --color-system: #1d4ed8; /* Blue-700 */
+            --color-system-bg: #dbeafe; /* Blue-100 */
+            --color-user: #166534; /* Green-800 */
+            --color-user-bg: #dcfce7; /* Green-100 */
+            --color-examples: #7c2d12; /* Amber-900 */
+            --color-examples-bg: #fef3c7; /* Amber-100 */
+            --color-model-output: #4b5563; /* Gray-600 */
+            --color-model-output-bg: #f3f4f6; /* Gray-100 */
+            
+            /* Font families */
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #f9fafb; /* Gray-50 */
+        }
+
+        /* Applying custom colors to Tailwind classes for consistency */
+        .system-text { color: var(--color-system); }
+        .system-bg { background-color: var(--color-system-bg); }
+        .system-border { border-color: var(--color-system); }
+        
+        .user-text { color: var(--color-user); }
+        .user-bg { background-color: var(--color-user-bg); }
+        .user-border { border-color: var(--color-user); }
+
+        .examples-text { color: var(--color-examples); }
+        .examples-bg { background-color: var(--color-examples-bg); }
+        .examples-border { border-color: var(--color-examples); }
+
+        .model-output-text { color: var(--color-model-output); }
+        .model-output-bg { background-color: var(--color-model-output-bg); }
+        
+        /* Style for the live preview panel to use monospace font */
+        #live-preview-content {
+            font-family: var(--font-mono);
+            white-space: pre-wrap; /* Ensures line breaks are respected */
+            word-wrap: break-word;
+        }
+
+        /* Smooth transitions for various UI elements */
+        textarea, .preview-container, .quiz-drop-zone, .tooltip {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Custom styling for the slider thumb */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #2563eb; /* Blue-600 */
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #2563eb; /* Blue-600 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            transition: background 0.2s ease;
+        }
+        
+        /* Styling for the draggable item in the quiz */
+        .quiz-draggable {
+            cursor: grab;
+        }
+        .quiz-draggable:active {
+            cursor: grabbing;
+        }
+        
+        /* Highlight for drop zones in the quiz */
+        .drag-over {
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Mastering Prompt Roles & Shots</h1>
+            <p class="mt-2 text-lg text-gray-600">An Interactive Guide to Building Effective Prompts</p>
+        </header>
+
+        <!-- Main grid for side-by-side layout on desktop, stacked on mobile -->
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- Left Column: The Prompt Builder -->
+            <div class="flex flex-col gap-6">
+                
+                <!-- 1. Prompt Stack Builder -->
+                <section class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">1. Prompt Stack Builder</h2>
+                    
+                    <!-- System Role Input -->
+                    <div class="mb-4">
+                        <label for="system-prompt" class="flex items-center font-semibold system-text">
+                            System Role
+                            <span class="ml-2 tooltip-trigger text-gray-400 hover:text-gray-600 cursor-pointer" data-tooltip="system-role">[?]</span>
+                        </label>
+                        <textarea id="system-prompt" rows="3" class="w-full mt-1 p-3 rounded-lg border-2 system-border system-bg focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="e.g., You are a helpful assistant that speaks like a pirate."></textarea>
+                    </div>
+
+                    <!-- User Role Input -->
+                    <div class="mb-4">
+                        <label for="user-prompt" class="font-semibold user-text">User Role</label>
+                        <textarea id="user-prompt" rows="4" class="w-full mt-1 p-3 rounded-lg border-2 user-border user-bg focus:ring-2 focus:ring-green-400 focus:outline-none" placeholder="e.g., Write a sea shanty about large language models."></textarea>
+                    </div>
+
+                    <!-- Few-Shot Examples Input -->
+                    <div>
+                        <label for="examples-prompt" class="font-semibold examples-text">Examples (Few-Shot)</label>
+                        <div class="mt-1 p-3 rounded-lg border-2 examples-border examples-bg">
+                           <p class="text-sm text-gray-600 mb-2">Q: What be the best treasure?</p>
+                           <p class="text-sm font-semibold text-gray-800">A: Knowledge, me hearty!</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">This is a template. Use the slider below to add more "shots".</p>
+                    </div>
+                </section>
+
+                <!-- 2. Shot Counter & Role Toggles -->
+                <section class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">2. Controls & Configuration</h2>
+                    
+                    <!-- Shot Counter Slider -->
+                    <div class="mb-6">
+                        <label for="shot-counter" class="font-semibold text-gray-600">Shot Counter: <span id="shot-count-label" class="font-bold text-blue-600">0</span></label>
+                        <input id="shot-counter" type="range" min="0" max="5" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                    </div>
+
+                    <!-- Role Toggles -->
+                    <div>
+                        <h3 class="font-semibold text-gray-600 mb-3">Role Toggles</h3>
+                        <div class="flex items-center space-x-6">
+                            <label for="toggle-system" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-system" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" checked>
+                                <span class="ml-2 text-gray-700">Include System Role</span>
+                            </label>
+                            <label for="toggle-user" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-user" class="h-4 w-4 rounded text-green-600 focus:ring-green-500" checked>
+                                <span class="ml-2 text-gray-700">Include User Role</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 3. Mini-Quiz -->
+                <section class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">3. Knowledge Check</h2>
+                    <p class="text-gray-600 mb-4">Drag the task to the correct prompt role.</p>
+                    <div class="flex justify-center mb-4">
+                        <div id="quiz-item" draggable="true" class="quiz-draggable bg-yellow-200 border-2 border-yellow-400 text-yellow-800 font-semibold px-4 py-2 rounded-lg shadow-sm">
+                            "Set the tone and personality"
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div id="drop-system" class="quiz-drop-zone p-4 rounded-lg border-2 border-dashed system-border system-bg">
+                            <p class="font-bold system-text">System</p>
+                        </div>
+                        <div id="drop-user" class="quiz-drop-zone p-4 rounded-lg border-2 border-dashed user-border user-bg">
+                            <p class="font-bold user-text">User</p>
+                        </div>
+                    </div>
+                    <div id="quiz-feedback" class="mt-4 text-center font-semibold h-6"></div>
+                </section>
+            </div>
+
+            <!-- Right Column: Live Preview & Output -->
+            <div class="preview-container sticky top-8">
+                <div class="bg-gray-800 text-white p-6 rounded-xl shadow-lg h-full flex flex-col">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4">Live Prompt Preview</h2>
+                    
+                    <!-- The actual preview content area -->
+                    <div id="live-preview-content" class="flex-grow bg-gray-900 rounded-lg p-4 text-sm overflow-y-auto">
+                        <!-- Content generated by JavaScript -->
+                    </div>
+                    
+                    <!-- Token Counter & Delimiter Info -->
+                    <div class="mt-4 pt-4 border-t border-gray-600 flex justify-between items-center">
+                         <div class="text-sm">
+                            <span class="font-semibold">Token Estimate:</span>
+                            <span id="token-counter" class="font-mono font-bold text-green-400">0</span>
+                            <span class="ml-2 tooltip-trigger text-gray-400 hover:text-gray-200 cursor-pointer" data-tooltip="token-budget">[?]</span>
+                        </div>
+                        <div class="text-sm">
+                            <span class="font-semibold">Delimiter:</span>
+                            <span class="font-mono text-yellow-400">Newlines</span>
+                            <span class="ml-2 tooltip-trigger text-gray-400 hover:text-gray-200 cursor-pointer" data-tooltip="delimiter">[?]</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mock Model Output -->
+                    <div class="mt-4">
+                        <h3 class="font-semibold text-gray-100 mb-2">Mock Model Output:</h3>
+                        <div id="model-output" class="model-output-bg model-output-text p-4 rounded-lg text-sm italic">
+                            The model's response will appear here...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tooltip Pop-ups (hidden by default) -->
+    <div id="tooltip-system-role" class="tooltip hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-white p-6 rounded-xl shadow-2xl z-50">
+        <button class="close-tooltip absolute top-3 right-4 text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+        <h3 class="text-lg font-bold system-text mb-2">System Role</h3>
+        <p class="text-gray-600">The system prompt sets the stage. It defines the AI's personality, constraints, and overall behavior for the entire conversation. It's the "meta-instruction" that guides the model's responses.</p>
+    </div>
+
+    <div id="tooltip-delimiter" class="tooltip hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-white p-6 rounded-xl shadow-2xl z-50">
+        <button class="close-tooltip absolute top-3 right-4 text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+        <h3 class="text-lg font-bold text-yellow-600 mb-2">Delimiter</h3>
+        <p class="text-gray-600">A delimiter is a character or sequence of characters that separates distinct parts of your prompt. Models use them to understand structure. Here, we're using newlines to separate the System, User, and Example messages.</p>
+    </div>
+    
+    <div id="tooltip-token-budget" class="tooltip hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-white p-6 rounded-xl shadow-2xl z-50">
+        <button class="close-tooltip absolute top-3 right-4 text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+        <h3 class="text-lg font-bold text-green-600 mb-2">Token Budget</h3>
+        <p class="text-gray-600">Models have a maximum context window, measured in "tokens" (roughly words or parts of words). Your entire prompt (system, user, examples) plus the model's generated response must fit within this budget. This is a simplified estimate.</p>
+    </div>
+    
+    <div id="tooltip-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // --- CONFIGURATION ---
+        // Instructors can change default values and logic here.
+        const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant that provides concise answers.";
+        const DEFAULT_USER_PROMPT = "Explain the concept of a 'few-shot prompt' in one sentence.";
+        const EXAMPLE_QUESTION = "Q: What is a 'zero-shot' prompt?";
+        const EXAMPLE_ANSWER = "A: It's when you ask a model to perform a task without giving it any prior examples.";
+        
+        // A simple token counting function. Can be replaced with more sophisticated logic.
+        // This version counts word-like chunks.
+        const countTokens = (text) => {
+            if (!text) return 0;
+            return text.trim().split(/\s+/).length;
+        };
+
+        // --- ELEMENT SELECTORS ---
+        const systemPromptEl = document.getElementById('system-prompt');
+        const userPromptEl = document.getElementById('user-prompt');
+        const livePreviewContentEl = document.getElementById('live-preview-content');
+        const tokenCounterEl = document.getElementById('token-counter');
+        const shotCounterEl = document.getElementById('shot-counter');
+        const shotCountLabelEl = document.getElementById('shot-count-label');
+        const toggleSystemEl = document.getElementById('toggle-system');
+        const toggleUserEl = document.getElementById('toggle-user');
+        const modelOutputEl = document.getElementById('model-output');
+
+        // --- INITIALIZATION ---
+        systemPromptEl.value = DEFAULT_SYSTEM_PROMPT;
+        userPromptEl.value = DEFAULT_USER_PROMPT;
+        updateAll(); // Initial call to populate everything
+
+        // --- EVENT LISTENERS ---
+        systemPromptEl.addEventListener('input', updateAll);
+        userPromptEl.addEventListener('input', updateAll);
+        shotCounterEl.addEventListener('input', handleShotCounterChange);
+        toggleSystemEl.addEventListener('change', updateAll);
+        toggleUserEl.addEventListener('change', updateAll);
+
+        // --- CORE FUNCTIONS ---
+
+        function handleShotCounterChange() {
+            shotCountLabelEl.textContent = shotCounterEl.value;
+            updateAll();
+        }
+
+        /**
+         * The main function that updates the entire preview based on current inputs.
+         * It orchestrates all the other update functions.
+         */
+        function updateAll() {
+            updateLivePreview();
+            updateTokenCount();
+            updateModelOutput();
+        }
+
+        /**
+         * Builds the concatenated prompt string with color-coded spans
+         * and renders it in the preview panel.
+         */
+        function updateLivePreview() {
+            let fullPromptHTML = '';
+            const systemText = systemPromptEl.value;
+            const userText = userPromptEl.value;
+            const shotCount = parseInt(shotCounterEl.value, 10);
+
+            // 1. Add System Prompt (if toggled on)
+            if (toggleSystemEl.checked && systemText) {
+                fullPromptHTML += `<span class="system-text">[SYSTEM]</span>\n${escapeHtml(systemText)}\n\n`;
+            }
+
+            // 2. Add Few-Shot Examples
+            if (shotCount > 0) {
+                 fullPromptHTML += `<span class="examples-text">[EXAMPLES]</span>\n`;
+                for (let i = 0; i < shotCount; i++) {
+                    fullPromptHTML += `${escapeHtml(EXAMPLE_QUESTION)}\n${escapeHtml(EXAMPLE_ANSWER)}\n`;
+                }
+                fullPromptHTML += `\n`;
+            }
+
+            // 3. Add User Prompt (if toggled on)
+            if (toggleUserEl.checked && userText) {
+                fullPromptHTML += `<span class="user-text">[USER]</span>\n${escapeHtml(userText)}`;
+            }
+            
+            livePreviewContentEl.innerHTML = fullPromptHTML;
+        }
+
+        /**
+         * Calculates the total token count from all active inputs
+         * and updates the display.
+         */
+        function updateTokenCount() {
+            let totalTokens = 0;
+            
+            if (toggleSystemEl.checked) {
+                totalTokens += countTokens(systemPromptEl.value);
+            }
+            if (toggleUserEl.checked) {
+                totalTokens += countTokens(userPromptEl.value);
+            }
+            
+            const shotCount = parseInt(shotCounterEl.value, 10);
+            if (shotCount > 0) {
+                const exampleTokens = countTokens(EXAMPLE_QUESTION) + countTokens(EXAMPLE_ANSWER);
+                totalTokens += exampleTokens * shotCount;
+            }
+
+            tokenCounterEl.textContent = totalTokens;
+        }
+        
+        /**
+         * Updates the mock model output based on the role toggles.
+         * This demonstrates the impact of including/excluding roles.
+         */
+        function updateModelOutput() {
+            let outputText = "Awaiting a well-formed prompt...";
+
+            if (!toggleSystemEl.checked && toggleUserEl.checked) {
+                outputText = "Without a system prompt, the model uses its default personality, which might not match your desired tone.";
+            } else if (toggleSystemEl.checked && !toggleUserEl.checked) {
+                outputText = "The model has its instructions (system prompt), but is waiting for a user question or command.";
+            } else if (!toggleSystemEl.checked && !toggleUserEl.checked) {
+                outputText = "The model has no instructions and no task. It cannot generate a response.";
+            } else {
+                 outputText = "The model has clear instructions and a user request. It will now generate a helpful, on-topic response.";
+            }
+            
+            modelOutputEl.textContent = outputText;
+        }
+        
+        /**
+         * Helper function to prevent HTML injection from user input.
+         */
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        // --- TOOLTIP LOGIC ---
+        const tooltipTriggers = document.querySelectorAll('.tooltip-trigger');
+        const tooltipOverlay = document.getElementById('tooltip-overlay');
+        const closeButtons = document.querySelectorAll('.close-tooltip');
+        
+        tooltipTriggers.forEach(trigger => {
+            trigger.addEventListener('click', () => {
+                const tooltipId = 'tooltip-' + trigger.dataset.tooltip;
+                document.getElementById(tooltipId).classList.remove('hidden');
+                tooltipOverlay.classList.remove('hidden');
+            });
+        });
+
+        const closeAllTooltips = () => {
+            document.querySelectorAll('.tooltip').forEach(tooltip => tooltip.classList.add('hidden'));
+            tooltipOverlay.classList.add('hidden');
+        };
+
+        closeButtons.forEach(button => button.addEventListener('click', closeAllTooltips));
+        tooltipOverlay.addEventListener('click', closeAllTooltips);
+
+        // --- MINI-QUIZ LOGIC ---
+        const draggable = document.getElementById('quiz-item');
+        const dropSystem = document.getElementById('drop-system');
+        const dropUser = document.getElementById('drop-user');
+        const quizFeedback = document.getElementById('quiz-feedback');
+
+        draggable.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', e.target.id);
+            setTimeout(() => {
+                e.target.classList.add('opacity-50');
+            }, 0);
+        });
+        
+        draggable.addEventListener('dragend', (e) => {
+            e.target.classList.remove('opacity-50');
+        });
+
+        [dropSystem, dropUser].forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Necessary to allow dropping
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                
+                // Reset styles and feedback
+                dropSystem.style.borderColor = '';
+                dropUser.style.borderColor = '';
+                dropSystem.style.backgroundColor = '';
+                dropUser.style.backgroundColor = '';
+                quizFeedback.textContent = '';
+                quizFeedback.className = 'mt-4 text-center font-semibold h-6';
+
+
+                if (zone.id === 'drop-system') {
+                    // Correct drop
+                    zone.style.borderColor = '#22c55e'; // green-500
+                    zone.style.backgroundColor = '#dcfce7'; // green-100
+                    quizFeedback.textContent = 'Correct! The System role defines behavior.';
+                    quizFeedback.classList.add('text-green-600');
+                } else {
+                    // Incorrect drop
+                    zone.style.borderColor = '#ef4444'; // red-500
+                    zone.style.backgroundColor = '#fee2e2'; // red-100
+                    quizFeedback.textContent = 'Not quite! The User role gives the task.';
+                    quizFeedback.classList.add('text-red-600');
+                }
+            });
+        });
+    });
+    </script>
+
+</body>
+</html>
